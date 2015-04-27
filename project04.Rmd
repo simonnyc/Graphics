@@ -1,0 +1,122 @@
+---
+title: "Project 04"
+author: "Mohamed Elmoudni"
+date: "Saturday, April 25, 2015"
+output: html_document
+---
+
+# Project Description:
+
+The site r-bloggers is a team blog, with a lot of great how-to content on various R topics. The page
+http://www.r-bloggers.com/search/web%20scraping provides a list of topics related to web scraping, which is also the topic of this project!
+
+Grading rubric:
+
+. For each of the reference blog entries on the first page, you should pull out the title, date, and author, and store these in an R data frame. Your code should be in github, and published to rpubs.com. You'll receive a maximum of 90% for completing this base assignment.
+
+. To earn the full 100 points, you must do some kind of further data extraction and/or analysis. Here are four sample ideas. You don't need to do more than one of these, and you are free to instead choose your own area for further analysis. Maximum additional points: 10%.
+
+1-  Extend your scraper to include the base information for blog entries on all of the tagged pages. Your R data frame should include any necessary additional rows.
+
+```{r}
+# Turning off warning as all warning are pertaining to R version 3.1.3
+options(warn=-1)
+
+# Loading necessary libraries 
+library(XML)
+library(rvest)
+library(stringr)
+library(knitr)
+
+```
+
+1- In the reference blog entries on the first page, we are storing the title, date, and author in data frame. Then displaying the stored data using "kable" function from "knitr" package 
+
+```{r}
+
+url = 'http://www.r-bloggers.com/search/web%20scraping'
+doc <- htmlParse(url)
+url_post<-   html_nodes(doc, xpath='//div[contains(@id,"post")]')
+# length(url_post)
+
+
+titles<- html_nodes(url_post,xpath='h2/a/text()')
+dates <- html_nodes(url_post, xpath='div[1]/div')
+authors<- html_nodes(url_post, xpath='div[1]/a')
+
+
+titles<- sapply(titles,xmlValue)   
+dates<- sapply(dates,xmlValue)   
+authors<- sapply(authors,xmlValue)
+
+out_df <- data.frame("Date" = str_trim(dates,side = "both"), "Title"= str_trim(titles,side = "both"),"Author"= str_trim(authors,side = "both"), "Page"= 1)
+
+kable(out_df)
+
+```
+
+2. Extending the scraper to include the title, date, and author for blog entries on all of the tagged pages 
+
+
+```{r}
+
+
+out_df <- data.frame("Date" = str_trim(dates,side = "both"), "Title"= str_trim(titles,side = "both"),"Author"= str_trim(authors,side = "both"), "Page"= 1)
+
+
+## Finding the total number of pages and store in variable named "count" 
+
+pages<- html_nodes(url_post, xpath='//*[@id="leftcontent"]/div[11]/span[1]')
+pages<-sapply(pages,xmlValue)
+x<- data.frame(pages)
+pages<-as.numeric(str_extract(pages,"[0-9]+$"))
+x<- data.frame(pages)
+count<- x[1,1]
+
+# traverse every page and store title, date, and author for every blog 
+
+for ( i in 2:count)  { 
+ url <- paste("http://www.r-bloggers.com/search/web%20scraping/page/",i,"/",sep="")
+  doc1 <- htmlParse(url)
+  
+  url_post<-   html_nodes(doc1, xpath='//div[contains(@id,"post")]')
+    
+ titles<- html_nodes(url_post,xpath='h2/a/text()')
+ dates <- html_nodes(url_post, xpath='div[1]/div')
+ authors<- html_nodes(url_post, xpath='div[1]/a')
+ 
+  titles<- sapply(titles,xmlValue)   
+  dates<- sapply(dates,xmlValue)   
+  authors<- sapply(authors,xmlValue)
+  
+
+ out_df <- rbind(out_df, data.frame(
+                "Date" =  dates, 
+                "Title"=  titles,
+                "Author"= authors, 
+                "Page"= i)
+                )
+ 
+
+ # Note: Using grepl function to find and replace control data in authors with word "Unknown"
+ 
+#  d<- as.list(authors)
+# if (grepl("CDATA", d[7])) authors= NULL 
+#  out_df <- rbind(out_df, data.frame(
+#                "Date" =  dates, 
+#                "Title"=  titles,
+#                "Author"= if (grepl("CDATA", d[7])) authors= # 
+#     "Unknown" # else authors, 
+#                "Page"= i)
+#               )
+    
+}
+
+ kable(out_df)
+
+
+
+```
+
+
+
